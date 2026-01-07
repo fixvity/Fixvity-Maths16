@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Normal Distribution Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root{
+  --blue:#2563eb;
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto;
+  background:var(--bg);
+  color:#111827;
+}
+.container{
+  max-width:1100px;
+  margin:auto;
+  padding:16px;
+}
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:0 12px 30px rgba(0,0,0,.08);
+  padding:18px;
+  margin-bottom:16px;
+}
+h1{color:var(--blue);margin:0}
+.subtitle{color:var(--muted);margin-top:6px}
+
+label{font-weight:600;font-size:14px}
+input,select{
+  width:100%;
+  padding:12px;
+  margin-top:6px;
+  margin-bottom:14px;
+  border-radius:10px;
+  border:1px solid #d1d5db;
+  font-size:15px;
+}
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  background:var(--blue);
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+button.secondary{
+  background:#eef2ff;
+  color:#111;
+  margin-top:10px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+.result-box{
+  background:#f9fafb;
+  border-radius:10px;
+  padding:14px;
+}
+.step{
+  background:#f3f4f6;
+  border-radius:8px;
+  padding:10px;
+  margin-bottom:8px;
+}
+.badge{
+  display:inline-block;
+  padding:4px 10px;
+  background:#e0e7ff;
+  color:#1e3a8a;
+  border-radius:999px;
+  font-size:12px;
+  margin-bottom:6px;
+}
+.error{color:#dc2626;font-weight:600}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<!-- INPUT -->
+<div class="card">
+<h1>Normal Distribution Calculator</h1>
+<p class="subtitle">
+PDF • CDF • Between values • Explain like a teacher
+</p>
+
+<label>Mean (μ)</label>
+<input id="mean" value="50">
+
+<label>Standard Deviation (σ)</label>
+<input id="sd" value="10">
+
+<label>Calculation Type</label>
+<select id="type">
+  <option value="left">P(X ≤ x)</option>
+  <option value="right">P(X ≥ x)</option>
+  <option value="between">P(a ≤ X ≤ b)</option>
+</select>
+
+<label>Value x (or a)</label>
+<input id="x1" value="60">
+
+<label id="bLabel" style="display:none">Value b</label>
+<input id="x2" value="70" style="display:none">
+
+<label>
+  <input type="checkbox" id="teach" checked>
+  Explain like a teacher
+</label>
+
+<button onclick="calculate()">Calculate Probability</button>
+<button class="secondary" onclick="resetAll()">Reset</button>
+</div>
+
+<!-- OUTPUT -->
+<div class="grid">
+<div class="card">
+<h3>Result</h3>
+<div id="result" class="result-box"></div>
+</div>
+
+<div class="card">
+<h3>Step-by-Step</h3>
+<div id="steps"></div>
+</div>
+</div>
+
+</div>
+
+<script>
+// Error function approximation (Abramowitz & Stegun)
+function erf(x){
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,
+        a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const sign = x<0 ? -1 : 1;
+  x=Math.abs(x);
+  const t=1/(1+p*x);
+  const y=1-((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return sign*y;
+}
+
+function cdf(x,mean,sd){
+  return 0.5*(1+erf((x-mean)/(sd*Math.sqrt(2))));
+}
+
+function calculate(){
+  const mean=Number(meanEl.value);
+  const sd=Number(sdEl.value);
+  const x1=Number(x1El.value);
+  const x2=Number(x2El.value);
+  const type=typeEl.value;
+  const teach=teachEl.checked;
+
+  result.innerHTML="";
+  steps.innerHTML="";
+
+  if(sd<=0){
+    result.innerHTML="<span class='error'>Standard deviation must be positive.</span>";
+    return;
+  }
+
+  let prob;
+
+  if(type==="left"){
+    prob=cdf(x1,mean,sd);
+  }
+  else if(type==="right"){
+    prob=1-cdf(x1,mean,sd);
+  }
+  else{
+    prob=cdf(x2,mean,sd)-cdf(x1,mean,sd);
+  }
+
+  result.innerHTML=`
+    <span class="badge">Final Answer</span><br>
+    <strong>Probability = ${prob.toFixed(6)}</strong>
+  `;
+
+  if(teach){
+    steps.innerHTML+=`<div class="step">Mean μ = ${mean}, Standard deviation σ = ${sd}</div>`;
+    if(type==="left"){
+      steps.innerHTML+=`<div class="step">We calculate P(X ≤ ${x1}).</div>`;
+    }else if(type==="right"){
+      steps.innerHTML+=`<div class="step">We calculate P(X ≥ ${x1}).</div>`;
+    }else{
+      steps.innerHTML+=`<div class="step">We calculate P(${x1} ≤ X ≤ ${x2}).</div>`;
+    }
+    steps.innerHTML+=`<div class="step">Using the normal CDF and Z-score transformation.</div>`;
+  }
+}
+
+function resetAll(){
+  meanEl.value=50;
+  sdEl.value=10;
+  x1El.value=60;
+  x2El.value=70;
+  result.innerHTML="";
+  steps.innerHTML="";
+}
+
+const meanEl=document.getElementById("mean");
+const sdEl=document.getElementById("sd");
+const x1El=document.getElementById("x1");
+const x2El=document.getElementById("x2");
+const typeEl=document.getElementById("type");
+const teachEl=document.getElementById("teach");
+const result=document.getElementById("result");
+const steps=document.getElementById("steps");
+
+typeEl.onchange=()=>{
+  const show=typeEl.value==="between";
+  x2El.style.display=show?"block":"none";
+  document.getElementById("bLabel").style.display=show?"block":"none";
+};
+</script>
+
+</body>
+</html>
